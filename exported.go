@@ -3,16 +3,24 @@ package logrus_ext
 import (
 	"context"
 	"github.com/sirupsen/logrus"
+	"os"
 	"runtime"
+	"strconv"
 	"time"
 )
 
+var hostName = os.Getenv("HOSTNAME")
+
 type Option struct {
+	HostName string
 	WithFunc bool
 }
 
 func Get(name string, option *Option) *logger {
-	var opt Option
+	opt := Option{
+		HostName: hostName,
+		WithFunc: true,
+	}
 	if option != nil {
 		opt = *option
 	}
@@ -198,7 +206,7 @@ func (l logger) Fatalf(format string, args ...interface{}) {
 }
 
 func (l logger) entry() *logrus.Entry {
-	entry := logrus.WithField("name", l.name)
+	entry := logrus.WithField("hostname", l.option.HostName).WithField("name", l.name)
 	if l.option.WithFunc {
 		entry = entry.WithField("func", getFunc(3))
 	}
@@ -213,5 +221,6 @@ func getFunc(skip int) string {
 	}
 
 	f := runtime.FuncForPC(pc)
-	return f.Name()
+	_, line := f.FileLine(pc)
+	return f.Name() + ":" + strconv.Itoa(line)
 }
